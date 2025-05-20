@@ -49,7 +49,7 @@
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   width: 100%;
-  max-width: 400px;
+  max-width: 800px;
 }
 
 h1 {
@@ -94,4 +94,52 @@ input:focus {
   color: #4a90e2;
   margin: 0;
   font-size: 1.5rem;
+}
+
+.MuiContainer-root {
+  padding-top: 2rem;
+  padding-bottom: 2rem;
+}
+
+.MuiPaper-root {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.MuiTypography-h2 {
+  color: #2c3e50;
+  font-weight: 600 !important;
+}
+
+.MuiTypography-h5 {
+  color: #7f8c8d !important;
+}
+
+.MuiTypography-h6 {
+  color: #2c3e50;
+  margin-bottom: 1.5rem !important;
+}
+
+.MuiTextField-root {
+  margin-bottom: 0.5rem;
+}
+
+canvas {
+  max-height: 300px !important;
+}
+
+@media (max-width: 600px) {
+  .MuiContainer-root {
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+  }
+
+  .MuiTypography-h2 {
+    font-size: 2rem !important;
+  }
+
+  .MuiTypography-h5 {
+    font-size: 1.1rem !important;
+  }
 }

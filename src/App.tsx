@@ -25,13 +25,13 @@ interface OpenStates {
 
 function App() {
   const initialData: SimulatorData = {
-    area: 0.5,
+    area: 0,
     enrelvamento: false,
     usoEficienteAgua: 'None',
   };
 
   const initialOpenStates: OpenStates = {
-    'fresh-fruit': false,
+    'fresh-fruit': true,
     'olival': false,
     'frutos-secos': false,
     'vinha': false,
@@ -265,10 +265,10 @@ function App() {
                                     setVinhaData;
                               setData(prev => ({
                                 ...prev,
-                                area: Math.max(0.5, parseFloat(e.target.value) || 0.5)
+                                area: Math.max(0, parseFloat(e.target.value) || 0)
                               }));
                             }}
-                            inputProps={{ min: 0.5, step: 0.1 }}
+                            inputProps={{ min: 0, step: 0.1 }}
                           />
                         </div>
 

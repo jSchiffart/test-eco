@@ -23,7 +23,6 @@
     "chart.js": "^4.4.9",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "gh-pages": "^6.3.0",
     "lucide-react": "^0.511.0",
     "react": "^19.1.0",
     "react-chartjs-2": "^5.3.0",
@@ -61,5 +60,8 @@
       "last 1 safari version"
     ]
   },
-  "homepage": "https://jSchiffart.github.io/test-eco"
+  "homepage": "https://jschiffart.github.io/test-eco",
+  "devDependencies": {
+    "gh-pages": "^6.3.0"
+  }
 }

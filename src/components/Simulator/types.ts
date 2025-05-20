@@ -1,7 +1,10 @@
+export type WateringMethod = 'irrigation' | 'rain';
+
 export interface SimulatorData {
     area: number;
     enrelvamento: boolean;
     usoEficienteAgua: 'Class A' | 'Class B+' | 'Class B' | 'None';
+    wateringMethod: WateringMethod;
 }
 
 export type FarmingType = 'fresh-fruit' | 'olival' | 'frutos-secos' | 'vinha';
@@ -43,13 +46,14 @@ export const initialData: SimulatorData = {
     area: 0,
     enrelvamento: false,
     usoEficienteAgua: 'None',
+    wateringMethod: 'rain'
 };
 
 export const initialOpenStates: OpenStates = {
-    'fresh-fruit': true,
+    'fresh-fruit': false,
     'olival': false,
     'frutos-secos': false,
-    'vinha': false,
+    'vinha': false
 };
 
 export const farmingTypes = [

@@ -4,7 +4,7 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
+    --background: 180 20% 97%;
     --foreground: 222.2 84% 4.9%;
 
     --card: 0 0% 100%;
@@ -73,6 +73,8 @@
 
   body {
     @apply bg-background text-foreground;
+    background: linear-gradient(135deg, #F1F7F6 0%, #F8FCFB 100%);
+    background-attachment: fixed;
   }
 }
 

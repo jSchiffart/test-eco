@@ -13,7 +13,11 @@ import {
     RATES
 } from './types';
 
-export const ProdisSimulator = () => {
+interface ProdisSimulatorProps {
+    onDataChange?: () => void;
+}
+
+export const ProdisSimulator = ({ onDataChange }: ProdisSimulatorProps) => {
     const [openStates, setOpenStates] = useState<OpenStates>(() => {
         const savedOpenStates = localStorage.getItem('prodisOpenStates');
         return savedOpenStates ? JSON.parse(savedOpenStates) : initialOpenStates;
@@ -77,17 +81,24 @@ export const ProdisSimulator = () => {
         switch (type) {
             case 'fresh-fruit':
                 setFreshFruitData(newData);
+                localStorage.setItem('prodisFreshFruitData', JSON.stringify(newData));
                 break;
             case 'olival':
                 setOlivalData(newData);
+                localStorage.setItem('prodisOlivalData', JSON.stringify(newData));
                 break;
             case 'frutos-secos':
                 setFrutosSecosData(newData);
+                localStorage.setItem('prodisFrutosSecosData', JSON.stringify(newData));
                 break;
             case 'vinha':
                 setVinhaData(newData);
+                localStorage.setItem('prodisVinhaData', JSON.stringify(newData));
                 break;
         }
+        // Trigger storage event to force data update
+        window.dispatchEvent(new Event('storage'));
+        onDataChange?.();
     };
 
     const handleReset = () => {
@@ -97,11 +108,16 @@ export const ProdisSimulator = () => {
         setVinhaData(initialData);
         setOpenStates(initialOpenStates);
 
-        localStorage.removeItem('prodisFreshFruitData');
-        localStorage.removeItem('prodisOlivalData');
-        localStorage.removeItem('prodisFrutosSecosData');
-        localStorage.removeItem('prodisVinhaData');
-        localStorage.removeItem('prodisOpenStates');
+        // Update localStorage directly
+        localStorage.setItem('prodisFreshFruitData', JSON.stringify(initialData));
+        localStorage.setItem('prodisOlivalData', JSON.stringify(initialData));
+        localStorage.setItem('prodisFrutosSecosData', JSON.stringify(initialData));
+        localStorage.setItem('prodisVinhaData', JSON.stringify(initialData));
+        localStorage.setItem('prodisOpenStates', JSON.stringify(initialOpenStates));
+
+        // Trigger storage event to force data update
+        window.dispatchEvent(new Event('storage'));
+        onDataChange?.();
     };
 
     const toggleCard = (type: FarmingType) => {

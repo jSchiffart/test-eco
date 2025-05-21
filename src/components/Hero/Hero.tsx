@@ -7,7 +7,7 @@ export const Hero = () => {
             <div className="w-[300px] h-[50px] bg-[#ECF5EA] rounded-full flex items-center justify-center mb-8">
                 <div className="flex items-center gap-2">
                     <Leaf className="w-5 h-5 text-[#66BB6A]" />
-                    <span className="text-[#66BB6A] font-medium">Biological Farming Calculator</span>
+                    <span className="text-[#66BB6A] font-medium">Eco-Schemes Simulator</span>
                 </div>
             </div>
 
@@ -16,7 +16,7 @@ export const Hero = () => {
                     Calculate Your Transition to Sustainable Farming
                 </h1>
                 <p className="text-[29px] text-[#78726D] max-w-4xl mx-auto">
-                    Understand the economic and environmental impacts of shifting from conventional to biological farming with our interactive calculator.
+                    Understand the economic and environmental impacts of different eco-schemes with our interactive simulator.
                 </p>
             </div>
         </div>

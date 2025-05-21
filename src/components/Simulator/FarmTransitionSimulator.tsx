@@ -14,7 +14,11 @@ import {
     RATES
 } from './types';
 
-export const FarmTransitionSimulator = () => {
+interface FarmTransitionSimulatorProps {
+    onDataChange?: () => void;
+}
+
+export const FarmTransitionSimulator = ({ onDataChange }: FarmTransitionSimulatorProps) => {
     const [openStates, setOpenStates] = useState<OpenStates>(() => {
         const savedOpenStates = localStorage.getItem('farmTransitionOpenStates');
         return savedOpenStates ? JSON.parse(savedOpenStates) : initialOpenStates;
@@ -87,17 +91,24 @@ export const FarmTransitionSimulator = () => {
         switch (type) {
             case 'fresh-fruit':
                 setFreshFruitData(newData);
+                localStorage.setItem('farmTransitionFreshFruitData', JSON.stringify(newData));
                 break;
             case 'olival':
                 setOlivalData(newData);
+                localStorage.setItem('farmTransitionOlivalData', JSON.stringify(newData));
                 break;
             case 'frutos-secos':
                 setFrutosSecosData(newData);
+                localStorage.setItem('farmTransitionFrutosSecosData', JSON.stringify(newData));
                 break;
             case 'vinha':
                 setVinhaData(newData);
+                localStorage.setItem('farmTransitionVinhaData', JSON.stringify(newData));
                 break;
         }
+        // Trigger storage event to force data update
+        window.dispatchEvent(new Event('storage'));
+        onDataChange?.();
     };
 
     const handleReset = () => {
@@ -108,12 +119,25 @@ export const FarmTransitionSimulator = () => {
         setOpenStates(initialOpenStates);
         setSimulatorMode('conversion');
 
-        localStorage.removeItem('farmTransitionFreshFruitData');
-        localStorage.removeItem('farmTransitionOlivalData');
-        localStorage.removeItem('farmTransitionFrutosSecosData');
-        localStorage.removeItem('farmTransitionVinhaData');
-        localStorage.removeItem('farmTransitionOpenStates');
-        localStorage.removeItem('farmTransitionSimulatorMode');
+        // Update localStorage directly
+        localStorage.setItem('farmTransitionFreshFruitData', JSON.stringify(initialData));
+        localStorage.setItem('farmTransitionOlivalData', JSON.stringify(initialData));
+        localStorage.setItem('farmTransitionFrutosSecosData', JSON.stringify(initialData));
+        localStorage.setItem('farmTransitionVinhaData', JSON.stringify(initialData));
+        localStorage.setItem('farmTransitionOpenStates', JSON.stringify(initialOpenStates));
+        localStorage.setItem('farmTransitionSimulatorMode', 'conversion');
+
+        // Trigger storage event to force data update
+        window.dispatchEvent(new Event('storage'));
+        onDataChange?.();
+    };
+
+    const handleModeChange = (mode: SimulatorMode) => {
+        setSimulatorMode(mode);
+        localStorage.setItem('farmTransitionSimulatorMode', mode);
+        // Trigger storage event to force data update
+        window.dispatchEvent(new Event('storage'));
+        onDataChange?.();
     };
 
     const toggleCard = (type: FarmingType) => {
@@ -164,7 +188,7 @@ export const FarmTransitionSimulator = () => {
                 <div className="flex gap-2">
                     <Button
                         variant={simulatorMode === 'conversion' ? "default" : "outline"}
-                        onClick={() => setSimulatorMode('conversion')}
+                        onClick={() => handleModeChange('conversion')}
                         className={`h-12 text-base font-medium transition-colors ${simulatorMode === 'conversion'
                             ? 'bg-[#66BB6A] text-white hover:bg-[#4CAF50]'
                             : 'hover:bg-[#EFF8F0] hover:text-[#66BB6A] hover:border-[#66BB6A]'
@@ -174,7 +198,7 @@ export const FarmTransitionSimulator = () => {
                     </Button>
                     <Button
                         variant={simulatorMode === 'maintenance' ? "default" : "outline"}
-                        onClick={() => setSimulatorMode('maintenance')}
+                        onClick={() => handleModeChange('maintenance')}
                         className={`h-12 text-base font-medium transition-colors ${simulatorMode === 'maintenance'
                             ? 'bg-[#66BB6A] text-white hover:bg-[#4CAF50]'
                             : 'hover:bg-[#EFF8F0] hover:text-[#66BB6A] hover:border-[#66BB6A]'

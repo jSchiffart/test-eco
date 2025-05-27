@@ -22,12 +22,24 @@ interface InfoTabProps {
         };
         lastUpdate: number;
     };
+    selectedProgram: 'bio' | 'prodi';
+}
+
+interface ProgramComparisonData {
+    name: string;
+    'Total Amount': number;
 }
 
 const COLORS = ['#227a0a', '#1a5d08', '#2d8f0d', '#3ba312'];
 const PROGRAM_COLORS = {
     bio: '#227a0a',
-    prodi: '#1a5d08'
+    prodi: '#49272d'
+};
+
+const GRANT_COMPARISON_COLORS = {
+    conversion: '#227a0a',
+    maintenance: '#00b9a2',
+    prodi: '#49272d'
 };
 
 const FARM_TYPE_COLORS = {
@@ -37,7 +49,7 @@ const FARM_TYPE_COLORS = {
     'Vinha': '#3ba312'
 };
 
-export const InfoTab = ({ simulatorData }: InfoTabProps) => {
+export const InfoTab = ({ simulatorData, selectedProgram }: InfoTabProps) => {
     const [programComparisonData, setProgramComparisonData] = useState<Array<{ name: string; 'Total Amount': number }>>([]);
 
     // Calculate metrics for a program
@@ -120,10 +132,98 @@ export const InfoTab = ({ simulatorData }: InfoTabProps) => {
         return total;
     };
 
+    // Calculate total grants based on active simulator
+    const totalGrants = useMemo(() => {
+        const allData = [
+            { data: simulatorData[selectedProgram].freshFruit, type: 'fresh-fruit' as FarmingType },
+            { data: simulatorData[selectedProgram].olival, type: 'olival' as FarmingType },
+            { data: simulatorData[selectedProgram].frutosSecos, type: 'frutos-secos' as FarmingType },
+            { data: simulatorData[selectedProgram].vinha, type: 'vinha' as FarmingType },
+        ];
+
+        return allData.reduce((total, { data, type }) => {
+            const area = data.area || 0;
+            const programType = selectedProgram === 'bio' ? 'bioConversion' : 'prodi';
+            const baseRate = RATES.getRate(type, area, programType, data.wateringMethod);
+            const baseAmount = area * baseRate;
+
+            let groundCoverAmount = 0;
+            if (data.groundCover) {
+                groundCoverAmount = area * RATES.groundCover.conversion;
+            }
+
+            let waterEfficiencyAmount = 0;
+            if (data.wateringMethod === 'irrigation' && data.waterEfficiency && data.waterEfficiency !== 'None') {
+                const waterEfficiencyRates = RATES.waterEfficiency[data.waterEfficiency];
+                if (waterEfficiencyRates) {
+                    waterEfficiencyAmount = area * waterEfficiencyRates.conversion;
+                }
+            }
+
+            return total + baseAmount + groundCoverAmount + waterEfficiencyAmount;
+        }, 0);
+    }, [simulatorData, selectedProgram]);
+
     // Add function to check if PRODI has any data
     const hasProdiData = useMemo(() => {
         return Object.values(simulatorData.prodi).some(data => data.area && data.area > 0);
     }, [simulatorData.prodi]);
+
+    // Calculate total grants based on current program
+    const totalGrantsCurrent = useMemo(() => {
+        const allData = [
+            { data: simulatorData.bio.freshFruit, type: 'fresh-fruit' as FarmingType },
+            { data: simulatorData.bio.olival, type: 'olival' as FarmingType },
+            { data: simulatorData.bio.frutosSecos, type: 'frutos-secos' as FarmingType },
+            { data: simulatorData.bio.vinha, type: 'vinha' as FarmingType },
+        ];
+
+        // If there's PRODI data, calculate PRODI total
+        if (hasProdiData) {
+            return allData.reduce((total, { data, type }) => {
+                const area = data.area || 0;
+                const baseRate = RATES.getRate(type, area, 'prodi', data.wateringMethod);
+                const baseAmount = area * baseRate;
+
+                let groundCoverAmount = 0;
+                if (data.groundCover) {
+                    groundCoverAmount = area * RATES.groundCover.conversion;
+                }
+
+                let waterEfficiencyAmount = 0;
+                if (data.wateringMethod === 'irrigation' && data.waterEfficiency && data.waterEfficiency !== 'None') {
+                    const waterEfficiencyRates = RATES.waterEfficiency[data.waterEfficiency];
+                    if (waterEfficiencyRates) {
+                        waterEfficiencyAmount = area * waterEfficiencyRates.conversion;
+                    }
+                }
+
+                return total + baseAmount + groundCoverAmount + waterEfficiencyAmount;
+            }, 0);
+        }
+
+        // If there's BIO data, calculate BIO conversion total
+        return allData.reduce((total, { data, type }) => {
+            const area = data.area || 0;
+            const baseRate = RATES.getRate(type, area, 'bioConversion', data.wateringMethod);
+            const baseAmount = area * baseRate;
+
+            let groundCoverAmount = 0;
+            if (data.groundCover) {
+                groundCoverAmount = area * RATES.groundCover.conversion;
+            }
+
+            let waterEfficiencyAmount = 0;
+            if (data.wateringMethod === 'irrigation' && data.waterEfficiency && data.waterEfficiency !== 'None') {
+                const waterEfficiencyRates = RATES.waterEfficiency[data.waterEfficiency];
+                if (waterEfficiencyRates) {
+                    waterEfficiencyAmount = area * waterEfficiencyRates.conversion;
+                }
+            }
+
+            return total + baseAmount + groundCoverAmount + waterEfficiencyAmount;
+        }, 0);
+    }, [simulatorData, hasProdiData]);
 
     // Add function to calculate culture breakdown
     const calculateCultureBreakdown = (data: { [key: string]: SimulatorData }) => {
@@ -191,15 +291,36 @@ export const InfoTab = ({ simulatorData }: InfoTabProps) => {
         // Calculate totals for all modes
         const bioConversionTotal = calculateProgramTotal(simulatorData.bio, 'conversion');
         const bioMaintenanceTotal = calculateProgramTotal(simulatorData.bio, 'maintenance');
-        const prodiTotal = hasProdiData ? calculateProgramTotal(simulatorData.prodi, 'conversion') : bioConversionTotal;
+
+        // Calculate PRODI total using BIO areas but with PRODI rates
+        const prodiTotal = Object.entries(simulatorData.bio).reduce((total, [type, farmData]) => {
+            const area = farmData.area || 0;
+            const baseRate = RATES.getRate(type as FarmingType, area, 'prodi', farmData.wateringMethod);
+            const baseAmount = area * baseRate;
+
+            let groundCoverAmount = 0;
+            if (farmData.groundCover) {
+                groundCoverAmount = area * RATES.groundCover.conversion;
+            }
+
+            let waterEfficiencyAmount = 0;
+            if (farmData.wateringMethod === 'irrigation' && farmData.waterEfficiency && farmData.waterEfficiency !== 'None') {
+                const waterEfficiencyRates = RATES.waterEfficiency[farmData.waterEfficiency];
+                if (waterEfficiencyRates) {
+                    waterEfficiencyAmount = area * waterEfficiencyRates.conversion;
+                }
+            }
+
+            return total + baseAmount + groundCoverAmount + waterEfficiencyAmount;
+        }, 0);
 
         setProgramComparisonData([
             {
-                name: 'BIO Conversion',
+                name: 'Conv',
                 'Total Amount': bioConversionTotal
             },
             {
-                name: 'BIO Maintenance',
+                name: 'Main',
                 'Total Amount': bioMaintenanceTotal
             },
             {
@@ -207,19 +328,70 @@ export const InfoTab = ({ simulatorData }: InfoTabProps) => {
                 'Total Amount': prodiTotal
             }
         ]);
-    }, [simulatorData.lastUpdate, hasProdiData]);
+    }, [simulatorData.lastUpdate]);
 
-    // Update sustainable practices data to use BIO data for PRODI when PRODI is empty
-    const sustainablePracticesData = useMemo(() => [
-        {
-            name: 'BIO',
-            'Ground Cover Coverage': bioMetrics.groundCoverPercentage
-        },
-        {
-            name: 'PRODI',
-            'Ground Cover Coverage': hasProdiData ? prodiMetrics.groundCoverPercentage : bioMetrics.groundCoverPercentage
-        }
-    ], [bioMetrics, prodiMetrics, hasProdiData]);
+    // Calculate CO2 emissions based on farming practices
+    const calculateEmissions = useMemo(() => {
+        const baseEmissions = {
+            bio: {
+                freshFruit: 0.8,  // tons CO2 per hectare
+                olival: 0.7,
+                frutosSecos: 0.6,
+                vinha: 0.75
+            },
+            prodi: {
+                freshFruit: 1.2,  // tons CO2 per hectare
+                olival: 1.1,
+                frutosSecos: 1.0,
+                vinha: 1.15
+            }
+        };
+
+        // Calculate total emissions for each program
+        const calculateProgramEmissions = (data: { [key: string]: SimulatorData }, program: 'bio' | 'prodi') => {
+            return Object.entries(data).reduce((total, [type, farmData]) => {
+                const area = farmData.area || 0;
+                const baseEmission = baseEmissions[program][type as keyof typeof baseEmissions.bio];
+                let emission = area * baseEmission;
+
+                // Reduce emissions for ground cover
+                if (farmData.groundCover) {
+                    emission *= 0.8; // 20% reduction
+                }
+
+                // Reduce emissions for water efficiency
+                if (farmData.wateringMethod === 'irrigation' && farmData.waterEfficiency) {
+                    switch (farmData.waterEfficiency) {
+                        case 'Class A':
+                            emission *= 0.85; // 15% reduction
+                            break;
+                        case 'Class B+':
+                            emission *= 0.9; // 10% reduction
+                            break;
+                        case 'Class B':
+                            emission *= 0.95; // 5% reduction
+                            break;
+                    }
+                }
+
+                return total + emission;
+            }, 0);
+        };
+
+        return [
+            {
+                name: 'BIO',
+                'CO2 Emissions': calculateProgramEmissions(simulatorData.bio, 'bio')
+            },
+            {
+                name: 'PRODI',
+                'CO2 Emissions': calculateProgramEmissions(simulatorData.bio, 'prodi') // Use BIO areas for comparison
+            }
+        ];
+    }, [simulatorData.lastUpdate]);
+
+    // Update sustainable practices data to use emissions
+    const sustainablePracticesData = useMemo(() => calculateEmissions, [calculateEmissions]);
 
     // Update farm size data to use BIO data for PRODI when PRODI is empty
     const farmSizeData = useMemo(() => [
@@ -238,6 +410,30 @@ export const InfoTab = ({ simulatorData }: InfoTabProps) => {
         cultureBreakdown.reduce((acc, curr) => acc + curr.value, 0),
         [cultureBreakdown]
     );
+
+    // Calculate initial investment based on total hectares
+    const initialInvestment = useMemo(() =>
+        totalFarmSize * 275,
+        [totalFarmSize]
+    );
+
+    // Calculate ROI based on grants, initial investment, and annual profit change
+    const calculateROI = useMemo(() => {
+        if (initialInvestment === 0) return 0;
+
+        // Calculate total grants over payback period (2.8 years)
+        const totalGrantsOverPeriod = totalGrants * 2.8;
+
+        // Calculate profit growth over payback period
+        // Starting with initial investment and applying 15% annual growth
+        const profitGrowth = initialInvestment * (Math.pow(1.15, 2.8) - 1);
+
+        // Total return = grants + profit growth
+        const totalReturn = totalGrantsOverPeriod + profitGrowth;
+
+        // ROI = (Total Return - Initial Investment) / Initial Investment * 100
+        return ((totalReturn - initialInvestment) / initialInvestment) * 100;
+    }, [totalGrants, initialInvestment]);
 
     // Add function to calculate water usage metrics
     const calculateWaterMetrics = (data: { [key: string]: SimulatorData }) => {
@@ -274,36 +470,65 @@ export const InfoTab = ({ simulatorData }: InfoTabProps) => {
         // Calculate initial values
         const bioConversionTotal = calculateProgramTotal(simulatorData.bio, 'conversion');
         const bioMaintenanceTotal = calculateProgramTotal(simulatorData.bio, 'maintenance');
-        const prodiTotal = calculateProgramTotal(simulatorData.prodi, 'conversion');
+
+        // Calculate PRODI total using BIO areas but with PRODI rates
+        const prodiTotal = Object.entries(simulatorData.bio).reduce((total, [type, farmData]) => {
+            const area = farmData.area || 0;
+            const baseRate = RATES.getRate(type as FarmingType, area, 'prodi', farmData.wateringMethod);
+            const baseAmount = area * baseRate;
+
+            let groundCoverAmount = 0;
+            if (farmData.groundCover) {
+                groundCoverAmount = area * RATES.groundCover.conversion;
+            }
+
+            let waterEfficiencyAmount = 0;
+            if (farmData.wateringMethod === 'irrigation' && farmData.waterEfficiency && farmData.waterEfficiency !== 'None') {
+                const waterEfficiencyRates = RATES.waterEfficiency[farmData.waterEfficiency];
+                if (waterEfficiencyRates) {
+                    waterEfficiencyAmount = area * waterEfficiencyRates.conversion;
+                }
+            }
+
+            return total + baseAmount + groundCoverAmount + waterEfficiencyAmount;
+        }, 0);
 
         // Calculate payback period (2.8 years after 3 years conversion)
-        const totalPaybackYears = 5.8; // 3 years conversion + 2.8 years payback
-        const displayYears = totalPaybackYears + 1; // Show exactly 1 year after intersection
+        const totalPaybackYears = 4.5; // Changed from 5.8 to 4.5 years
+        const displayYears = totalPaybackYears; // Removed the +1 to show exactly 4.5 years
+        const intersectionYear = 2.8; // Target intersection year
 
-        // Calculate PRODI linear growth rate (assuming it's the same as the initial rate)
-        const prodiGrowthRate = prodiTotal / totalPaybackYears;
+        // Calculate annual rates
+        const bioConversionAnnualRate = bioConversionTotal / 3; // Annual rate during conversion
+        const bioMaintenanceAnnualRate = bioMaintenanceTotal; // Annual rate after conversion
+        const prodiAnnualRate = prodiTotal; // Annual rate for PRODI
+
+        // Calculate the required PRODI growth rate to intersect at 2.8 years
+        // We'll solve for the multiplier that makes PRODI reach the same value as BIO at 2.8 years
+        const bioValueAtIntersection = bioConversionAnnualRate * intersectionYear;
+        const requiredProdiRate = bioValueAtIntersection / intersectionYear;
 
         // Generate data points
         const data = [];
         for (let year = 0; year <= displayYears; year += 0.1) { // Use smaller increments for smoother line
-            const month = Math.abs(year - totalPaybackYears) < 0.1 ? ' (Intersection)' : '';
-            const prodiValue = prodiGrowthRate * year;
-
             let bioValue;
             if (year <= 3) {
-                // During conversion period
-                bioValue = (bioConversionTotal / 3) * year;
+                // During conversion period - show conversion grants minus initial investment
+                bioValue = bioConversionAnnualRate * year - initialInvestment;
             } else {
-                // After conversion period
-                const conversionBase = bioConversionTotal;
+                // After conversion period - show maintenance grants plus profit change minus initial investment
+                const conversionTotal = bioConversionTotal; // Total conversion grants received
                 const yearsAfterConversion = year - 3;
-                const maintenanceGrowth = bioMaintenanceTotal * yearsAfterConversion;
-                const profitChange = conversionBase * Math.pow(1.15, yearsAfterConversion); // 15% annual profit change
-                bioValue = conversionBase + maintenanceGrowth + profitChange;
+                const maintenanceGrants = bioMaintenanceAnnualRate * yearsAfterConversion;
+                const profitChange = conversionTotal * Math.pow(1.50, yearsAfterConversion) - conversionTotal; // 50% annual profit change
+                bioValue = conversionTotal + maintenanceGrants + profitChange - initialInvestment;
             }
 
+            // PRODI grants with adjusted growth rate to intersect at 2.8 years
+            const prodiValue = requiredProdiRate * year;
+
             data.push({
-                year: `${year.toFixed(1)}${month}`,
+                year: year.toFixed(1),
                 prodi: Math.round(prodiValue),
                 bio: Math.round(bioValue)
             });
@@ -311,6 +536,20 @@ export const InfoTab = ({ simulatorData }: InfoTabProps) => {
 
         return data;
     }, [simulatorData.lastUpdate]);
+
+    // Calculate ground cover implementation metrics
+    const groundCoverMetrics = useMemo(() => {
+        const totalArea = bioMetrics.totalArea;
+        const groundCoverArea = bioMetrics.groundCoverPercentage * totalArea / 100;
+
+        return {
+            totalArea,
+            groundCoverArea,
+            percentage: bioMetrics.groundCoverPercentage,
+            // Calculate implementation cost at 150€ per hectare
+            implementationCost: groundCoverArea * 150
+        };
+    }, [bioMetrics]);
 
     return (
         <Card className="w-full mb-8">
@@ -326,19 +565,19 @@ export const InfoTab = ({ simulatorData }: InfoTabProps) => {
                 </div>
             </CardHeader>
             <CardContent className="pt-6">
-                <div className="flex gap-8 h-[450px]">
-                    <div className="w-[20%] flex flex-col justify-center space-y-6">
+                <div className="flex gap-[16px] h-[450px]">
+                    <div className="w-[20%] flex flex-col justify-center space-y-[16px]">
                         <div>
-                            <div className="text-sm text-gray-500 mb-1">Total</div>
-                            <div className="text-2xl font-semibold text-[#227a0a]">8,000 €</div>
+                            <div className="text-sm text-gray-500 mb-1">Total in Grants</div>
+                            <div className="text-2xl font-semibold text-[#227a0a]">{totalGrants.toLocaleString('pt-PT')} €</div>
                         </div>
                         <div>
                             <div className="text-sm text-gray-500 mb-1">Initial Investment</div>
-                            <div className="text-2xl font-semibold text-[#227a0a]">25,000 €</div>
+                            <div className="text-2xl font-semibold text-[#227a0a]">{initialInvestment.toLocaleString('pt-PT')} €</div>
                         </div>
                         <div>
                             <div className="text-sm text-gray-500 mb-1">Return on Investment</div>
-                            <div className="text-2xl font-semibold text-[#227a0a]">32%</div>
+                            <div className="text-2xl font-semibold text-[#227a0a]">{calculateROI.toFixed(1)}%</div>
                         </div>
                         <div>
                             <div className="text-sm text-gray-500 mb-1">Payback Period</div>
@@ -346,38 +585,30 @@ export const InfoTab = ({ simulatorData }: InfoTabProps) => {
                         </div>
                         <div>
                             <div className="text-sm text-gray-500 mb-1">Annual Profit Change</div>
-                            <div className="text-2xl font-semibold text-[#227a0a]">+15%</div>
+                            <div className="text-2xl font-semibold text-[#227a0a]">+50%</div>
                         </div>
                     </div>
                     <div className="w-[80%]">
-                        <div className="grid grid-cols-9 grid-rows-2 gap-4 h-full">
-                            <div className="col-span-5 col-start-1 row-span-1">
+                        <div className="grid grid-cols-9 grid-rows-2 gap-[16px] h-full">
+                            <div className="col-span-5 col-start-1 row-span-1 pr-0">
                                 <div className="h-[225px] p-5 border rounded-lg">
                                     <div className="text-base font-semibold mb-4">Transition Overview</div>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-4">
+                                    <div className="grid grid-cols-2 gap-[16px] h-[calc(100%-2rem)] items-center">
+                                        <div className="space-y-[16px]">
                                             <div>
-                                                <div className="text-xs text-gray-500 mb-0.5">Conversion Progress</div>
+                                                <div className="text-xs text-gray-500 mb-0.5">Conversion Period</div>
                                                 <div className="text-lg font-semibold text-[#227a0a]">
-                                                    {bioMetrics.totalArea > 0 ? 'Active' : 'Not Started'}
+                                                    {bioMetrics.totalArea > 0 ? '3 Years' : 'Not Started'}
                                                 </div>
                                             </div>
                                             <div>
                                                 <div className="text-xs text-gray-500 mb-0.5">Ground Cover Implementation</div>
                                                 <div className="text-lg font-semibold text-[#227a0a]">
-                                                    {bioMetrics.groundCoverPercentage.toFixed(1)}% Coverage
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <div className="text-xs text-gray-500 mb-0.5">Water Efficiency</div>
-                                                <div className="text-lg font-semibold text-[#227a0a]">
-                                                    {bioMetrics.waterEfficiency.classA > 0 ? 'Class A' :
-                                                        bioMetrics.waterEfficiency.classBPlus > 0 ? 'Class B+' :
-                                                            bioMetrics.waterEfficiency.classB > 0 ? 'Class B' : 'Not Implemented'}
+                                                    {groundCoverMetrics.percentage.toFixed(1)}% Coverage
                                                 </div>
                                             </div>
                                         </div>
-                                        <div className="space-y-4">
+                                        <div className="space-y-[16px]">
                                             <div>
                                                 <div className="text-xs text-gray-500 mb-0.5">Total Area in Transition</div>
                                                 <div className="text-lg font-semibold text-[#227a0a]">
@@ -390,22 +621,16 @@ export const InfoTab = ({ simulatorData }: InfoTabProps) => {
                                                     {bioMetrics.irrigationPercentage.toFixed(1)}% of Total Area
                                                 </div>
                                             </div>
-                                            <div>
-                                                <div className="text-xs text-gray-500 mb-0.5">Program Type</div>
-                                                <div className="text-lg font-semibold text-[#227a0a]">
-                                                    {bioMetrics.totalArea > 0 ? 'Biological Farming' : 'Not Selected'}
-                                                </div>
-                                            </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                            <div className="col-span-4 col-start-6 row-span-1">
+                            <div className="col-span-4 col-start-6 row-span-1 pl-0">
                                 <div className="h-[225px] p-5 border rounded-lg">
                                     <div className="flex h-[180px]">
-                                        <div className="w-1/2">
+                                        <div className="w-1/2 flex flex-col justify-center">
                                             <div className="text-base font-semibold mb-[5px]">Farm Summary</div>
-                                            <div className="space-y-4">
+                                            <div className="space-y-[16px]">
                                                 <div>
                                                     <div className="text-xs text-gray-500">Watering Method</div>
                                                     <div className="text-sm">
@@ -493,19 +718,21 @@ export const InfoTab = ({ simulatorData }: InfoTabProps) => {
                             </div>
                             <div className="col-span-3 col-start-1 row-start-2">
                                 <div className="h-[225px] p-5 border rounded-lg">
-                                    <div className="text-sm font-semibold text-center mb-[20px]">Program Comparison</div>
+                                    <div className="text-sm font-semibold text-center mb-[20px]">Grant Comparison</div>
                                     <div className="h-[165px] flex justify-center">
                                         <div className="w-full">
                                             <ResponsiveContainer width="100%" height="100%" key={`program-comparison-${simulatorData.lastUpdate}`}>
                                                 <BarChart
                                                     data={programComparisonData}
-                                                    margin={{ top: 5, right: 5, bottom: 5, left: 5 }}
+                                                    margin={{ top: 5, right: 5, bottom: 25, left: 5 }}
                                                 >
                                                     <XAxis
                                                         dataKey="name"
                                                         axisLine={false}
                                                         tickLine={false}
                                                         tick={{ fill: '#78726D', fontSize: 11 }}
+                                                        interval={0}
+                                                        height={40}
                                                     />
                                                     <YAxis
                                                         axisLine={false}
@@ -516,7 +743,12 @@ export const InfoTab = ({ simulatorData }: InfoTabProps) => {
                                                     />
                                                     <Tooltip
                                                         cursor={false}
-                                                        formatter={(value) => [`${value.toLocaleString('en-US')} €`, '']}
+                                                        formatter={(value, name) => {
+                                                            const fullName = name === 'Conv' ? 'BIO: Conversion' :
+                                                                name === 'Main' ? 'BIO: Maintenance' :
+                                                                    'PRODI';
+                                                            return [`${value.toLocaleString('en-US')} €`, fullName];
+                                                        }}
                                                         contentStyle={{
                                                             backgroundColor: 'white',
                                                             border: 'none',
@@ -526,10 +758,21 @@ export const InfoTab = ({ simulatorData }: InfoTabProps) => {
                                                     />
                                                     <Bar
                                                         dataKey="Total Amount"
-                                                        fill={PROGRAM_COLORS.bio}
+                                                        fill="#227a0a"
                                                         radius={[4, 4, 0, 0]}
                                                         barSize={35}
-                                                    />
+                                                    >
+                                                        {programComparisonData.map((entry, index) => (
+                                                            <Cell
+                                                                key={`cell-${index}`}
+                                                                fill={
+                                                                    entry.name === 'Conv' ? GRANT_COMPARISON_COLORS.conversion :
+                                                                        entry.name === 'Main' ? GRANT_COMPARISON_COLORS.maintenance :
+                                                                            GRANT_COMPARISON_COLORS.prodi
+                                                                }
+                                                            />
+                                                        ))}
+                                                    </Bar>
                                                 </BarChart>
                                             </ResponsiveContainer>
                                         </div>
@@ -538,7 +781,7 @@ export const InfoTab = ({ simulatorData }: InfoTabProps) => {
                             </div>
                             <div className="col-span-3 col-start-4 row-start-2">
                                 <div className="h-[225px] p-5 border rounded-lg">
-                                    <div className="text-sm font-semibold text-center mb-[20px]">Sustainable Practices</div>
+                                    <div className="text-sm font-semibold text-center mb-[20px]">CO2 Emissions</div>
                                     <div className="h-[165px]">
                                         <ResponsiveContainer width="100%" height="100%" key={`sustainable-practices-${simulatorData.lastUpdate}`}>
                                             <BarChart
@@ -556,9 +799,11 @@ export const InfoTab = ({ simulatorData }: InfoTabProps) => {
                                                     axisLine={false}
                                                     tickLine={false}
                                                     tick={{ fill: '#78726D', fontSize: 11 }}
+                                                    tickFormatter={(value) => `${value.toFixed(1)}t`}
                                                 />
                                                 <Tooltip
                                                     cursor={false}
+                                                    formatter={(value) => [`${Number(value).toFixed(1)} tons CO2`, '']}
                                                     contentStyle={{
                                                         backgroundColor: 'white',
                                                         border: 'none',
@@ -567,12 +812,19 @@ export const InfoTab = ({ simulatorData }: InfoTabProps) => {
                                                     }}
                                                 />
                                                 <Bar
-                                                    dataKey="Ground Cover Coverage"
-                                                    name="Ground Cover Coverage %"
+                                                    dataKey="CO2 Emissions"
+                                                    name="CO2 Emissions"
                                                     fill={PROGRAM_COLORS.bio}
                                                     radius={[4, 4, 0, 0]}
                                                     barSize={35}
-                                                />
+                                                >
+                                                    {sustainablePracticesData.map((entry, index) => (
+                                                        <Cell
+                                                            key={`cell-${index}`}
+                                                            fill={entry.name === 'BIO' ? GRANT_COMPARISON_COLORS.conversion : GRANT_COMPARISON_COLORS.prodi}
+                                                        />
+                                                    ))}
+                                                </Bar>
                                             </BarChart>
                                         </ResponsiveContainer>
                                     </div>

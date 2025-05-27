@@ -122,7 +122,7 @@ export const Simulator = () => {
                 <FarmTransitionSimulator onDataChange={() => setLastUpdateTimestamp(Date.now())} /> :
                 <ProdisSimulator onDataChange={() => setLastUpdateTimestamp(Date.now())} />
             }
-            <InfoTab simulatorData={getSimulatorData()} />
+            <InfoTab simulatorData={getSimulatorData()} selectedProgram={selectedProgram} />
         </div>
     );
 }; 

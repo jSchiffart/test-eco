@@ -238,7 +238,7 @@ export const FarmTransitionSimulator = ({ onDataChange }: FarmTransitionSimulato
                             />
                             {getDataForType(type.id).area > 0 && (
                                 <div className="text-sm font-medium text-gray-600">
-                                    Subtotal: <span className="text-[#227a0a]">{calculateCardTotal(getDataForType(type.id), type.id).toLocaleString('pt-PT')} €</span>
+                                    Subtotal in Grants: <span className="text-[#227a0a]">{calculateCardTotal(getDataForType(type.id), type.id).toLocaleString('pt-PT')} €</span>
                                 </div>
                             )}
                         </div>
@@ -246,7 +246,7 @@ export const FarmTransitionSimulator = ({ onDataChange }: FarmTransitionSimulato
                 </div>
                 <div className="mt-8 flex items-center justify-between">
                     <div className="text-2xl font-semibold">
-                        Total: <span className="text-[#227a0a]">{calculateTotal().toLocaleString('pt-PT')} €</span>
+                        Total in Grants: <span className="text-[#227a0a]">{calculateTotal().toLocaleString('pt-PT')} €</span>
                     </div>
                     <Button
                         variant="outline"

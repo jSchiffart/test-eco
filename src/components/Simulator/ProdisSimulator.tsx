@@ -195,7 +195,7 @@ export const ProdisSimulator = ({ onDataChange }: ProdisSimulatorProps) => {
                             />
                             {getDataForType(type.id).area > 0 && (
                                 <div className="text-sm font-medium text-gray-600">
-                                    Subtotal: <span className="text-[#227a0a]">{calculateCardTotal(getDataForType(type.id), type.id).toLocaleString('pt-PT')} €</span>
+                                    Subtotal in Grants: <span className="text-[#227a0a]">{calculateCardTotal(getDataForType(type.id), type.id).toLocaleString('pt-PT')} €</span>
                                 </div>
                             )}
                         </div>

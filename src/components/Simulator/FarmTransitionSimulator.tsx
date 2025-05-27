@@ -147,29 +147,44 @@ export const FarmTransitionSimulator = ({ onDataChange }: FarmTransitionSimulato
         }));
     };
 
-    const calculateCardTotal = (data: SimulatorData) => {
+    const calculateCardTotal = (data: SimulatorData, type: FarmingType) => {
         const area = data.area || 0;
-        const enrelvamentoRate = RATES.enrelvamento[simulatorMode];
-        const aguaRate = data.wateringMethod === 'irrigation'
-            ? RATES.usoEficienteAgua[data.usoEficienteAgua][simulatorMode]
-            : 0;
+        const programType = simulatorMode === 'conversion' ? 'bioConversion' : 'bioMaintenance';
 
-        const enrelvamentoAmount = data.enrelvamento ? area * enrelvamentoRate : 0;
-        const aguaAmount = area * aguaRate;
+        // Get the base rate based on area, type, and program
+        const baseRate = RATES.getRate(type, area, programType, data.wateringMethod);
+        const baseAmount = area * baseRate;
 
-        return enrelvamentoAmount + aguaAmount;
+        // Calculate ground cover amounts
+        let groundCoverAmount = 0;
+        if (data.groundCover) {
+            // Base ground cover rate
+            groundCoverAmount = area * RATES.groundCover[simulatorMode];
+        }
+
+        // Add water efficiency if irrigation is used
+        let waterEfficiencyAmount = 0;
+        if (data.wateringMethod === 'irrigation' && data.waterEfficiency && data.waterEfficiency !== 'None') {
+            const waterEfficiencyRates = RATES.waterEfficiency[data.waterEfficiency];
+            if (waterEfficiencyRates) {
+                const waterEfficiencyRate = waterEfficiencyRates[simulatorMode];
+                waterEfficiencyAmount = area * waterEfficiencyRate;
+            }
+        }
+
+        return baseAmount + groundCoverAmount + waterEfficiencyAmount;
     };
 
     const calculateTotal = () => {
         const allData = [
-            { data: freshFruitData, type: 'fresh-fruit' },
-            { data: olivalData, type: 'olival' },
-            { data: frutosSecosData, type: 'frutos-secos' },
-            { data: vinhaData, type: 'vinha' },
+            { data: freshFruitData, type: 'fresh-fruit' as FarmingType },
+            { data: olivalData, type: 'olival' as FarmingType },
+            { data: frutosSecosData, type: 'frutos-secos' as FarmingType },
+            { data: vinhaData, type: 'vinha' as FarmingType },
         ];
 
-        return allData.reduce((total, { data }) => {
-            return total + calculateCardTotal(data);
+        return allData.reduce((total, { data, type }) => {
+            return total + calculateCardTotal(data, type);
         }, 0);
     };
 
@@ -177,7 +192,7 @@ export const FarmTransitionSimulator = ({ onDataChange }: FarmTransitionSimulato
         <Card className="w-full mb-8">
             <CardHeader className="bg-[#EFF8F0] flex flex-row items-center justify-between">
                 <div className="flex items-center space-x-4">
-                    <Leaf className="w-8 h-8 text-[#66BB6A]" />
+                    <Leaf className="w-8 h-8 text-[#227a0a]" />
                     <div>
                         <CardTitle className="text-[36px]">Farm Transition Simulator</CardTitle>
                         <CardDescription className="text-[12px] text-[#78726D]">
@@ -190,8 +205,8 @@ export const FarmTransitionSimulator = ({ onDataChange }: FarmTransitionSimulato
                         variant={simulatorMode === 'conversion' ? "default" : "outline"}
                         onClick={() => handleModeChange('conversion')}
                         className={`h-12 text-base font-medium transition-colors ${simulatorMode === 'conversion'
-                            ? 'bg-[#66BB6A] text-white hover:bg-[#4CAF50]'
-                            : 'hover:bg-[#EFF8F0] hover:text-[#66BB6A] hover:border-[#66BB6A]'
+                            ? 'bg-[#227a0a] text-white hover:bg-[#1a5d08]'
+                            : 'hover:bg-[#EFF8F0] hover:text-[#227a0a] hover:border-[#227a0a]'
                             }`}
                     >
                         Conversion
@@ -200,8 +215,8 @@ export const FarmTransitionSimulator = ({ onDataChange }: FarmTransitionSimulato
                         variant={simulatorMode === 'maintenance' ? "default" : "outline"}
                         onClick={() => handleModeChange('maintenance')}
                         className={`h-12 text-base font-medium transition-colors ${simulatorMode === 'maintenance'
-                            ? 'bg-[#66BB6A] text-white hover:bg-[#4CAF50]'
-                            : 'hover:bg-[#EFF8F0] hover:text-[#66BB6A] hover:border-[#66BB6A]'
+                            ? 'bg-[#227a0a] text-white hover:bg-[#1a5d08]'
+                            : 'hover:bg-[#EFF8F0] hover:text-[#227a0a] hover:border-[#227a0a]'
                             }`}
                     >
                         Maintenance
@@ -223,7 +238,7 @@ export const FarmTransitionSimulator = ({ onDataChange }: FarmTransitionSimulato
                             />
                             {getDataForType(type.id).area > 0 && (
                                 <div className="text-sm font-medium text-gray-600">
-                                    Subtotal: <span className="text-[#66BB6A]">{calculateCardTotal(getDataForType(type.id)).toLocaleString('pt-PT')} €</span>
+                                    Subtotal: <span className="text-[#227a0a]">{calculateCardTotal(getDataForType(type.id), type.id).toLocaleString('pt-PT')} €</span>
                                 </div>
                             )}
                         </div>
@@ -231,7 +246,7 @@ export const FarmTransitionSimulator = ({ onDataChange }: FarmTransitionSimulato
                 </div>
                 <div className="mt-8 flex items-center justify-between">
                     <div className="text-2xl font-semibold">
-                        Total: <span className="text-[#66BB6A]">{calculateTotal().toLocaleString('pt-PT')} €</span>
+                        Total: <span className="text-[#227a0a]">{calculateTotal().toLocaleString('pt-PT')} €</span>
                     </div>
                     <Button
                         variant="outline"

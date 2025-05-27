@@ -98,8 +98,8 @@ export const Simulator = () => {
                         setLastUpdateTimestamp(Date.now());
                     }}
                     className={`h-16 px-8 text-lg font-medium transition-colors ${selectedProgram === 'bio'
-                        ? 'bg-[#66BB6A] text-white hover:bg-[#4CAF50]'
-                        : 'hover:bg-[#EFF8F0] hover:text-[#66BB6A] hover:border-[#66BB6A]'
+                        ? 'bg-[#227a0a] text-white hover:bg-[#1a5d08]'
+                        : 'hover:bg-[#EFF8F0] hover:text-[#227a0a] hover:border-[#227a0a]'
                         }`}
                 >
                     Bio
@@ -111,8 +111,8 @@ export const Simulator = () => {
                         setLastUpdateTimestamp(Date.now());
                     }}
                     className={`h-16 px-8 text-lg font-medium transition-colors ${selectedProgram === 'prodi'
-                        ? 'bg-[#66BB6A] text-white hover:bg-[#4CAF50]'
-                        : 'hover:bg-[#EFF8F0] hover:text-[#66BB6A] hover:border-[#66BB6A]'
+                        ? 'bg-[#227a0a] text-white hover:bg-[#1a5d08]'
+                        : 'hover:bg-[#EFF8F0] hover:text-[#227a0a] hover:border-[#227a0a]'
                         }`}
                 >
                     PRODI

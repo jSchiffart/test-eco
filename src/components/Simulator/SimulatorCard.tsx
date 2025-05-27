@@ -5,7 +5,7 @@ import { Checkbox } from '../ui/checkbox';
 import { Label } from '../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { TextField } from '@mui/material';
-import { FarmingType, SimulatorData, SimulatorMode, WateringMethod } from './types';
+import { FarmingType, SimulatorData, SimulatorMode, WateringType } from './types';
 
 interface SimulatorCardProps {
     type: FarmingType;
@@ -32,9 +32,9 @@ export const SimulatorCard = ({
             [field]: value
         };
 
-        // If switching to rain, reset usoEficienteAgua to None
-        if (field === 'wateringMethod' && value === 'rain') {
-            newData.usoEficienteAgua = 'None';
+        // If switching to rain, reset water efficiency to None
+        if (field === 'wateringMethod' && value === 'rain-fed') {
+            newData.waterEfficiency = 'None';
         }
 
         onDataChange(type, newData);
@@ -46,8 +46,8 @@ export const SimulatorCard = ({
                 variant={isOpen ? "default" : "outline"}
                 onClick={() => onToggle(type)}
                 className={`w-full h-12 text-base font-medium transition-colors ${isOpen
-                    ? 'bg-[#66BB6A] text-white hover:bg-[#4CAF50]'
-                    : 'hover:bg-[#EFF8F0] hover:text-[#66BB6A] hover:border-[#66BB6A]'
+                    ? 'bg-[#227a0a] text-white hover:bg-[#1a5d08]'
+                    : 'hover:bg-[#EFF8F0] hover:text-[#227a0a] hover:border-[#227a0a]'
                     }`}
             >
                 {label}
@@ -55,7 +55,7 @@ export const SimulatorCard = ({
 
             <Card
                 className={`w-full transition-all duration-200 ${isOpen
-                    ? 'opacity-100 max-h-[500px] border-[#66BB6A]'
+                    ? 'opacity-100 max-h-[500px] border-[#227a0a]'
                     : 'opacity-0 max-h-0 overflow-hidden border-[#EFF8F0]'
                     }`}
             >
@@ -75,14 +75,18 @@ export const SimulatorCard = ({
                             />
                         </div>
 
-                        {/* Enrelvamento Checkbox */}
-                        <div className="flex items-center space-x-2">
-                            <Checkbox
-                                id={`enrelvamento-${type}`}
-                                checked={data.enrelvamento}
-                                onCheckedChange={(checked: boolean) => handleInputChange('enrelvamento', checked)}
-                            />
-                            <Label htmlFor={`enrelvamento-${type}`} className="text-sm">Cumulação do Enrelvamento</Label>
+                        {/* Ground Cover section */}
+                        <div className="space-y-2">
+                            <div className="flex items-center space-x-2">
+                                <Checkbox
+                                    id={`groundCover-${type}`}
+                                    checked={data.groundCover}
+                                    onCheckedChange={(checked) => handleInputChange('groundCover', checked)}
+                                />
+                                <Label htmlFor={`groundCover-${type}`} className="text-sm">
+                                    Ground Cover Grant
+                                </Label>
+                            </div>
                         </div>
 
                         {/* Watering Method Select */}
@@ -92,34 +96,34 @@ export const SimulatorCard = ({
                             </Label>
                             <Select
                                 value={data.wateringMethod}
-                                onValueChange={(value: WateringMethod) => handleInputChange('wateringMethod', value)}
+                                onValueChange={(value: WateringType) => handleInputChange('wateringMethod', value)}
                             >
                                 <SelectTrigger id={`wateringMethod-${type}`} className="w-full h-9 text-sm">
                                     <SelectValue placeholder="Select watering method" />
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="irrigation">Irrigation</SelectItem>
-                                    <SelectItem value="rain">Rain</SelectItem>
+                                    <SelectItem value="rain-fed">Rain-fed</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
 
-                        {/* Uso Eficiente de Água Select - Only shown when watering method is irrigation */}
+                        {/* Water Efficiency Select - Only shown when watering method is irrigation */}
                         {data.wateringMethod === 'irrigation' && (
                             <div className="space-y-1">
-                                <Label htmlFor={`usoEficienteAgua-${type}`} className="text-sm">
+                                <Label htmlFor={`waterEfficiency-${type}`} className="text-sm">
                                     {simulatorMode === 'conversion'
-                                        ? 'Cumulação do Uso Eficiente de Água'
-                                        : 'Cumulação do EFIAGUA'
+                                        ? 'Water Efficiency Accumulation'
+                                        : 'Water Efficiency Accumulation'
                                     }
                                 </Label>
                                 <Select
-                                    value={data.usoEficienteAgua}
+                                    value={data.waterEfficiency}
                                     onValueChange={(value: 'Class A' | 'Class B+' | 'Class B' | 'None') =>
-                                        handleInputChange('usoEficienteAgua', value)
+                                        handleInputChange('waterEfficiency', value)
                                     }
                                 >
-                                    <SelectTrigger id={`usoEficienteAgua-${type}`} className="w-full h-9 text-sm">
+                                    <SelectTrigger id={`waterEfficiency-${type}`} className="w-full h-9 text-sm">
                                         <SelectValue placeholder="Select a class" />
                                     </SelectTrigger>
                                     <SelectContent>
